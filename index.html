@@ -1,0 +1,1249 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>考試大鐘</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: #0b1020;
+      color: #f4f7ff;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 50% 15%, rgba(31, 58, 110, 0.34), transparent 55%),
+        #0b1020;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1180px, 100%);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 48px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(28px, 5vh, 54px);
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 8px;
+      border: 1px solid rgba(164, 184, 226, 0.16);
+      border-radius: 14px;
+      background: rgba(16, 24, 42, 0.85);
+    }
+
+    .tab-button {
+      min-height: 46px;
+      padding: 10px 20px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: #bbc8e2;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .tab-button[aria-selected="true"] {
+      border-color: #6289df;
+      background: #2853a7;
+      color: #fff;
+    }
+
+    .tab-button:focus-visible,
+    .sound-button:focus-visible,
+    .timer-controls button:focus-visible,
+    .schedule-row button:focus-visible,
+    .add-schedule:focus-visible {
+      outline: 3px solid #90b4ff;
+      outline-offset: 2px;
+    }
+
+    .tab-panel {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(28px, 5vh, 54px);
+    }
+
+    .tab-panel[hidden] {
+      display: none;
+    }
+
+    .tool-panel {
+      padding: clamp(18px, 3vw, 32px);
+      border: 1px solid rgba(164, 184, 226, 0.16);
+      border-radius: 18px;
+      background: rgba(16, 24, 42, 0.92);
+    }
+
+    .tool-panel h1 {
+      margin: 0 0 10px;
+      text-align: center;
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+    }
+
+    .panel-description {
+      margin: 0 0 28px;
+      color: #aab9d9;
+      text-align: center;
+    }
+
+    .bell-buttons,
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .sound-button {
+      flex: 1 1 230px;
+      min-height: 112px;
+      border: 1px solid #6289df;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #2853a7, #19366f);
+      color: #fff;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 750;
+      cursor: pointer;
+      box-shadow: 0 10px 32px rgba(18, 46, 100, 0.25);
+    }
+
+    .sound-button.end-bell {
+      border-color: #4f9d8b;
+      background: linear-gradient(145deg, #197861, #104a4c);
+    }
+
+    .sound-button:hover,
+    .timer-controls button:hover,
+    .add-schedule:hover,
+    .schedule-row button:hover {
+      filter: brightness(1.15);
+    }
+
+    .schedule-section {
+      margin-top: 34px;
+    }
+
+    .schedule-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .schedule-heading h2,
+    .timer-settings h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .auto-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #d8e1f2;
+      cursor: pointer;
+    }
+
+    .auto-toggle input {
+      width: 21px;
+      height: 21px;
+      accent-color: #4bd0a0;
+    }
+
+    .schedule-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .schedule-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid rgba(164, 184, 226, 0.14);
+      border-radius: 12px;
+      background: rgba(11, 18, 34, 0.72);
+    }
+
+    .schedule-row button,
+    .add-schedule,
+    .timer-controls button {
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid #435373;
+      border-radius: 9px;
+      background: #202d47;
+      color: #fff;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .schedule-row button {
+      border-color: #824751;
+      background: #552f3b;
+    }
+
+    .schedule-empty {
+      margin: 0;
+      padding: 18px;
+      border: 1px dashed #435373;
+      border-radius: 12px;
+      color: #aab9d9;
+      text-align: center;
+    }
+
+    .schedule-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .schedule-hint {
+      margin: 0;
+      color: #aab9d9;
+    }
+
+    .add-schedule {
+      border-color: #397d6a;
+      background: #195b4d;
+    }
+
+    .tool-notice {
+      min-height: 1.3em;
+      margin: 14px 0 0;
+      color: #ffbd78;
+      text-align: center;
+    }
+
+    .timer-panel {
+      text-align: center;
+    }
+
+    .timer-phase {
+      margin: 0 0 10px;
+      color: #aab9d9;
+      font-size: clamp(1.1rem, 2.3vw, 1.6rem);
+    }
+
+    .timer-display {
+      margin: 0;
+      color: #fff;
+      font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+      font-size: clamp(5rem, 20vw, 13rem);
+      font-variant-numeric: tabular-nums;
+      font-weight: 750;
+      line-height: 1;
+      text-shadow: 0 0 42px rgba(115, 164, 255, 0.22);
+    }
+
+    .timer-round {
+      margin: 16px 0 28px;
+      color: #8ee6c1;
+      font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+    }
+
+    .timer-controls button {
+      min-width: 112px;
+      min-height: 50px;
+      border-color: #6289df;
+      background: #2853a7;
+      font-size: 1.05rem;
+    }
+
+    .timer-controls button.secondary {
+      border-color: #435373;
+      background: #202d47;
+    }
+
+    .timer-settings {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin-top: 34px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(164, 184, 226, 0.16);
+    }
+
+    .timer-settings h2 {
+      flex-basis: 100%;
+      text-align: center;
+    }
+
+    .timer-settings .field {
+      width: min(200px, 100%);
+      text-align: left;
+    }
+
+    .clock-panel {
+      text-align: center;
+    }
+
+    .date {
+      margin: 0 0 clamp(8px, 2vh, 18px);
+      color: #b9c7e8;
+      font-size: clamp(1.1rem, 2.4vw, 1.8rem);
+      letter-spacing: 0.08em;
+    }
+
+    .clock {
+      margin: 0;
+      color: #fff;
+      font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+      font-size: clamp(4.4rem, 17vw, 11.5rem);
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.035em;
+      text-shadow: 0 0 42px rgba(115, 164, 255, 0.22);
+    }
+
+    .exam-info {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      width: 100%;
+    }
+
+    .info-card {
+      min-width: 0;
+      padding: 18px 20px;
+      border: 1px solid rgba(164, 184, 226, 0.16);
+      border-radius: 14px;
+      background: rgba(19, 28, 49, 0.82);
+    }
+
+    .info-label {
+      display: block;
+      margin-bottom: 8px;
+      color: #aab9d9;
+      font-size: 0.95rem;
+      letter-spacing: 0.06em;
+    }
+
+    .info-value {
+      display: block;
+      overflow-wrap: anywhere;
+      color: #f4f7ff;
+      font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+      font-weight: 650;
+    }
+
+    .countdown-card .info-value {
+      color: #8ee6c1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .countdown-card.urgent .info-value {
+      color: #ff6b76;
+    }
+
+    .editor {
+      padding: clamp(18px, 3vw, 28px);
+      border: 1px solid rgba(164, 184, 226, 0.16);
+      border-radius: 18px;
+      background: rgba(16, 24, 42, 0.92);
+    }
+
+    .editor-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .editor h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .fullscreen-button {
+      flex: 0 0 auto;
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid #6289df;
+      border-radius: 10px;
+      background: #2853a7;
+      color: #fff;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .fullscreen-button:hover {
+      background: #3567c7;
+    }
+
+    .fullscreen-button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid #90b4ff;
+      outline-offset: 2px;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px 16px;
+    }
+
+    .field {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field label {
+      color: #c3cee5;
+      font-size: 0.95rem;
+    }
+
+    .field input {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 1px solid #34415e;
+      border-radius: 9px;
+      background: #0b1222;
+      color: #f4f7ff;
+    }
+
+    .field input::placeholder {
+      color: #7786a4;
+    }
+
+    .attendee-fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .storage-notice {
+      min-height: 1.3em;
+      margin: 14px 0 0;
+      color: #ffbd78;
+      font-size: 0.9rem;
+    }
+
+    body.is-fullscreen {
+      background: #080c16;
+    }
+
+    body.is-fullscreen .page {
+      width: 100%;
+      min-height: 100vh;
+      padding: clamp(20px, 5vw, 72px);
+      gap: clamp(28px, 7vh, 72px);
+    }
+
+    body.is-fullscreen .editor {
+      display: none;
+    }
+
+    body.is-fullscreen .tabs {
+      display: none;
+    }
+
+    body.is-fullscreen .exam-info {
+      gap: clamp(10px, 2vw, 24px);
+    }
+
+    body.is-fullscreen .info-card {
+      padding: clamp(16px, 2.4vw, 30px);
+      background: #111a2c;
+    }
+
+    body.is-fullscreen .info-label {
+      font-size: clamp(0.95rem, 1.7vw, 1.3rem);
+    }
+
+    body.is-fullscreen .info-value {
+      font-size: clamp(1.25rem, 3vw, 2.2rem);
+    }
+
+    @media (max-width: 760px) {
+      .exam-info {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .schedule-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .schedule-row button {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .page {
+        gap: 28px;
+      }
+
+      .fields {
+        grid-template-columns: 1fr;
+      }
+
+      .editor-heading {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .fullscreen-button {
+        width: 100%;
+      }
+
+      .exam-info {
+        gap: 9px;
+      }
+
+      .info-card {
+        padding: 14px;
+      }
+
+      .attendee-fields {
+        gap: 10px;
+      }
+
+      .tab-button {
+        flex: 1 1 120px;
+        padding: 10px 12px;
+      }
+
+      .schedule-row {
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .schedule-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .timer-controls button {
+        flex: 1 1 42%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="tabs" role="tablist" aria-label="功能分頁">
+      <button class="tab-button" id="tab-exam" type="button" role="tab" aria-selected="true" aria-controls="exam-panel" tabindex="0">考試大鐘</button>
+      <button class="tab-button" id="tab-bells" type="button" role="tab" aria-selected="false" aria-controls="bells-panel" tabindex="-1">上下課鐘</button>
+      <button class="tab-button" id="tab-pomodoro" type="button" role="tab" aria-selected="false" aria-controls="pomodoro-panel" tabindex="-1">讀書番茄鐘</button>
+    </nav>
+
+    <section class="tab-panel" id="exam-panel" role="tabpanel" aria-labelledby="tab-exam">
+    <section class="clock-panel" aria-label="現在時間">
+      <p class="date" id="date"></p>
+      <h1 class="clock" id="clock" aria-live="off">00:00:00</h1>
+    </section>
+
+    <section class="exam-info" aria-label="考試資訊">
+      <div class="info-card">
+        <span class="info-label">考試科目</span>
+        <span class="info-value" id="summary-subject">尚未設定</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">考試時間</span>
+        <span class="info-value" id="summary-time">--:-- ～ --:--</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">監考老師</span>
+        <span class="info-value" id="summary-teacher">尚未設定</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">應到 / 實到 / 缺考</span>
+        <span class="info-value" id="summary-attendance">0 / 0 / 0</span>
+      </div>
+      <div class="info-card countdown-card" id="countdown-card">
+        <span class="info-label">距離考試結束</span>
+        <span class="info-value" id="countdown">尚未設定</span>
+      </div>
+    </section>
+
+    <section class="editor" aria-label="考試設定">
+      <div class="editor-heading">
+        <h2>考試資訊設定</h2>
+        <button class="fullscreen-button" id="fullscreen-button" type="button">進入全螢幕</button>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <label for="subject">考試科目</label>
+          <input id="subject" type="text" placeholder="例如：數學" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="start-time">開始時間（24 小時制）</label>
+          <input id="start-time" type="time">
+        </div>
+        <div class="field">
+          <label for="end-time">結束時間（24 小時制）</label>
+          <input id="end-time" type="time">
+        </div>
+        <div class="field">
+          <label for="teacher">監考老師</label>
+          <input id="teacher" type="text" placeholder="輸入老師姓名" autocomplete="off">
+        </div>
+        <div class="attendee-fields">
+          <div class="field">
+            <label for="expected">應到人數</label>
+            <input id="expected" type="number" min="0" step="1" inputmode="numeric" value="0">
+          </div>
+          <div class="field">
+            <label for="actual">實到人數</label>
+            <input id="actual" type="number" min="0" step="1" inputmode="numeric" value="0">
+          </div>
+        </div>
+      </div>
+      <p class="storage-notice" id="storage-notice" role="status"></p>
+    </section>
+    </section>
+
+    <section class="tab-panel" id="bells-panel" role="tabpanel" aria-labelledby="tab-bells" hidden>
+      <section class="tool-panel">
+        <h1>上下課鐘</h1>
+        <p class="panel-description">按鈕可手動播放鈴聲，也可以依照課表自動打鐘。</p>
+        <div class="bell-buttons">
+          <button class="sound-button" id="start-bell-button" type="button">上課鈴</button>
+          <button class="sound-button end-bell" id="end-bell-button" type="button">下課鈴</button>
+        </div>
+        <div class="schedule-section">
+          <div class="schedule-heading">
+            <h2>每日課表</h2>
+            <label class="auto-toggle" for="auto-bell">
+              <input id="auto-bell" type="checkbox">
+              啟用自動打鐘
+            </label>
+          </div>
+          <div class="schedule-list" id="schedule-list"></div>
+          <div class="schedule-actions">
+            <button class="add-schedule" id="add-schedule" type="button">＋ 新增一節</button>
+            <p class="schedule-hint">請確認瀏覽器保持開啟，且裝置音量已開啟。</p>
+          </div>
+          <p class="tool-notice" id="bell-notice" role="status"></p>
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="pomodoro-panel" role="tabpanel" aria-labelledby="tab-pomodoro" hidden>
+      <section class="tool-panel timer-panel">
+        <h1>讀書番茄鐘</h1>
+        <p class="timer-phase" id="timer-phase">專注時間</p>
+        <p class="timer-display" id="timer-display" role="timer" aria-live="off">25:00</p>
+        <p class="timer-round" id="timer-round">第 1 輪</p>
+        <div class="timer-controls">
+          <button id="timer-start" type="button">開始</button>
+          <button class="secondary" id="timer-pause" type="button">暫停</button>
+          <button class="secondary" id="timer-reset" type="button">重設</button>
+          <button class="secondary" id="timer-skip" type="button">跳過</button>
+        </div>
+        <div class="timer-settings">
+          <h2>時間設定</h2>
+          <div class="field">
+            <label for="focus-duration">專注時間（分鐘）</label>
+            <input id="focus-duration" type="number" min="1" max="180" step="1" value="25">
+          </div>
+          <div class="field">
+            <label for="break-duration">休息時間（分鐘）</label>
+            <input id="break-duration" type="number" min="1" max="60" step="1" value="5">
+          </div>
+        </div>
+        <p class="tool-notice" id="timer-notice" role="status"></p>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "exam-clock-settings-v1";
+    const fields = {
+      subject: document.getElementById("subject"),
+      startTime: document.getElementById("start-time"),
+      endTime: document.getElementById("end-time"),
+      teacher: document.getElementById("teacher"),
+      expected: document.getElementById("expected"),
+      actual: document.getElementById("actual")
+    };
+    const notice = document.getElementById("storage-notice");
+    const countdownCard = document.getElementById("countdown-card");
+    const fullscreenButton = document.getElementById("fullscreen-button");
+
+    function showStorageError(action) {
+      notice.textContent = `無法${action}到此瀏覽器的本機儲存空間；目前畫面仍可使用。`;
+    }
+
+    function readSettings() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return;
+
+        const settings = JSON.parse(stored);
+        if (!settings || typeof settings !== "object") {
+          throw new Error("Stored exam settings must be an object.");
+        }
+
+        for (const key of ["subject", "startTime", "endTime", "teacher"]) {
+          if (typeof settings[key] === "string") fields[key].value = settings[key];
+        }
+        for (const key of ["expected", "actual"]) {
+          const value = Number(settings[key]);
+          if (Number.isInteger(value) && value >= 0) fields[key].value = String(value);
+        }
+      } catch (error) {
+        console.error("Unable to load exam settings.", error);
+        showStorageError("讀取");
+      }
+    }
+
+    function saveSettings() {
+      const settings = {
+        subject: fields.subject.value,
+        startTime: fields.startTime.value,
+        endTime: fields.endTime.value,
+        teacher: fields.teacher.value,
+        expected: fields.expected.value,
+        actual: fields.actual.value
+      };
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        notice.textContent = "";
+      } catch (error) {
+        console.error("Unable to save exam settings.", error);
+        showStorageError("儲存");
+      }
+    }
+
+    function getNonNegativeInteger(input) {
+      const value = Number(input.value);
+      return Number.isInteger(value) && value >= 0 ? value : 0;
+    }
+
+    function updateExamInfo() {
+      const expected = getNonNegativeInteger(fields.expected);
+      const actual = getNonNegativeInteger(fields.actual);
+      const absent = Math.max(0, expected - actual);
+
+      document.getElementById("summary-subject").textContent =
+        fields.subject.value.trim() || "尚未設定";
+      document.getElementById("summary-time").textContent =
+        fields.startTime.value && fields.endTime.value
+          ? `${fields.startTime.value} ～ ${fields.endTime.value}`
+          : "尚未設定";
+      document.getElementById("summary-teacher").textContent =
+        fields.teacher.value.trim() || "尚未設定";
+      document.getElementById("summary-attendance").textContent =
+        `${expected} / ${actual} / ${absent}`;
+    }
+
+    function getExamEnd(now) {
+      const endValue = fields.endTime.value;
+      const startValue = fields.startTime.value;
+      if (!endValue) return null;
+
+      const [endHour, endMinute] = endValue.split(":").map(Number);
+      const end = new Date(now);
+      end.setHours(endHour, endMinute, 0, 0);
+
+      if (startValue) {
+        const [startHour, startMinute] = startValue.split(":").map(Number);
+        const startMinutes = startHour * 60 + startMinute;
+        const endMinutes = endHour * 60 + endMinute;
+
+        if (endMinutes < startMinutes) {
+          if (now.getHours() * 60 + now.getMinutes() <= endMinutes) {
+            end.setDate(end.getDate());
+          } else {
+            end.setDate(end.getDate() + 1);
+          }
+        }
+      }
+
+      return end;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("date").textContent = new Intl.DateTimeFormat("zh-TW", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "long"
+      }).format(now);
+      document.getElementById("clock").textContent = new Intl.DateTimeFormat("zh-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23"
+      }).format(now);
+
+      const end = getExamEnd(now);
+      const countdown = document.getElementById("countdown");
+      countdownCard.classList.remove("urgent");
+      if (!end) {
+        countdown.textContent = "尚未設定";
+        return;
+      }
+
+      const remainingMilliseconds = end.getTime() - now.getTime();
+      if (remainingMilliseconds <= 0) {
+        countdown.textContent = "考試已結束";
+        return;
+      }
+
+      const remainingMinutes = Math.ceil(remainingMilliseconds / 60000);
+      countdown.textContent = `${remainingMinutes} 分鐘`;
+      if (remainingMinutes <= 10) countdownCard.classList.add("urgent");
+    }
+
+    async function toggleFullscreen() {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        } else {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (error) {
+        console.error("Unable to change fullscreen mode.", error);
+        notice.textContent = "無法切換全螢幕；請確認瀏覽器允許此操作。";
+      }
+    }
+
+    function updateFullscreenState() {
+      const isFullscreen = Boolean(document.fullscreenElement);
+      document.body.classList.toggle("is-fullscreen", isFullscreen);
+      fullscreenButton.textContent = isFullscreen ? "離開全螢幕" : "進入全螢幕";
+    }
+
+    readSettings();
+    updateExamInfo();
+    updateClock();
+
+    for (const input of Object.values(fields)) {
+      input.addEventListener("input", () => {
+        saveSettings();
+        updateExamInfo();
+        updateClock();
+      });
+    }
+
+    fullscreenButton.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", updateFullscreenState);
+    window.setInterval(updateClock, 1000);
+  </script>
+  <script>
+    (() => {
+      "use strict";
+
+      const APP_KEY = "exam-clock-tools-v1";
+      const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+      const panels = tabs.map((tab) => document.getElementById(tab.getAttribute("aria-controls")));
+      const scheduleList = document.getElementById("schedule-list");
+      const autoBellInput = document.getElementById("auto-bell");
+      const bellNotice = document.getElementById("bell-notice");
+      const timerNotice = document.getElementById("timer-notice");
+      const focusInput = document.getElementById("focus-duration");
+      const breakInput = document.getElementById("break-duration");
+      const timerDisplay = document.getElementById("timer-display");
+      const timerPhase = document.getElementById("timer-phase");
+      const timerRound = document.getElementById("timer-round");
+      let audioContext = null;
+      let schedules = [];
+      let timerPhaseKey = "focus";
+      let currentRound = 1;
+      let remainingMilliseconds = 25 * 60 * 1000;
+      let timerDeadline = null;
+      let timerRunning = false;
+      let lastCheckedMinute = getMinuteKey(new Date());
+
+      function selectTab(index, moveFocus) {
+        tabs.forEach((tab, tabIndex) => {
+          const selected = tabIndex === index;
+          tab.setAttribute("aria-selected", String(selected));
+          tab.tabIndex = selected ? 0 : -1;
+          panels[tabIndex].hidden = !selected;
+        });
+        if (moveFocus) tabs[index].focus();
+      }
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => selectTab(index, false));
+        tab.addEventListener("keydown", (event) => {
+          let nextIndex = index;
+          if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+          else if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+          else if (event.key === "Home") nextIndex = 0;
+          else if (event.key === "End") nextIndex = tabs.length - 1;
+          else return;
+          event.preventDefault();
+          selectTab(nextIndex, true);
+        });
+      });
+
+      function createScheduleId() {
+        return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
+
+      function validTime(value) {
+        return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+      }
+
+      function readAppSettings() {
+        try {
+          const raw = localStorage.getItem(APP_KEY);
+          if (!raw) return;
+          const settings = JSON.parse(raw);
+          if (!settings || typeof settings !== "object") {
+            throw new Error("Stored tool settings must be an object.");
+          }
+
+          if (Array.isArray(settings.schedules)) {
+            schedules = settings.schedules
+              .filter((item) => item && typeof item === "object")
+              .map((item) => ({
+                id: typeof item.id === "string" ? item.id : createScheduleId(),
+                start: validTime(item.start) ? item.start : "",
+                end: validTime(item.end) ? item.end : ""
+              }));
+          }
+          if (typeof settings.autoBell === "boolean") {
+            autoBellInput.checked = settings.autoBell;
+          }
+          if (Number.isInteger(settings.focusMinutes) && settings.focusMinutes >= 1 && settings.focusMinutes <= 180) {
+            focusInput.value = String(settings.focusMinutes);
+          }
+          if (Number.isInteger(settings.breakMinutes) && settings.breakMinutes >= 1 && settings.breakMinutes <= 60) {
+            breakInput.value = String(settings.breakMinutes);
+          }
+        } catch (error) {
+          console.error("Unable to load clock tool settings.", error);
+          bellNotice.textContent = "無法讀取已儲存的課表或工具設定。";
+        }
+      }
+
+      function saveAppSettings() {
+        const settings = {
+          schedules: schedules.map(({ id, start, end }) => ({ id, start, end })),
+          autoBell: autoBellInput.checked,
+          focusMinutes: Number(focusInput.value),
+          breakMinutes: Number(breakInput.value)
+        };
+        try {
+          localStorage.setItem(APP_KEY, JSON.stringify(settings));
+        } catch (error) {
+          console.error("Unable to save clock tool settings.", error);
+          bellNotice.textContent = "無法將課表或工具設定儲存到本機。";
+        }
+      }
+
+      function saveSchedulesFromForm() {
+        schedules = Array.from(scheduleList.querySelectorAll(".schedule-row")).map((row) => ({
+          id: row.dataset.scheduleId,
+          start: row.querySelector('[data-kind="start"]').value,
+          end: row.querySelector('[data-kind="end"]').value
+        }));
+        saveAppSettings();
+      }
+
+      function renderSchedules() {
+        scheduleList.replaceChildren();
+        if (schedules.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "schedule-empty";
+          empty.textContent = "尚未新增課表，按「新增一節」開始設定。";
+          scheduleList.append(empty);
+          return;
+        }
+
+        schedules.forEach((schedule, index) => {
+          const row = document.createElement("div");
+          row.className = "schedule-row";
+          row.dataset.scheduleId = schedule.id;
+          for (const [kind, labelText, value] of [
+            ["start", `第 ${index + 1} 節上課時間`, schedule.start],
+            ["end", `第 ${index + 1} 節下課時間`, schedule.end]
+          ]) {
+            const field = document.createElement("div");
+            field.className = "field";
+            const label = document.createElement("label");
+            const input = document.createElement("input");
+            const inputId = `schedule-${schedule.id}-${kind}`;
+            label.htmlFor = inputId;
+            label.textContent = labelText;
+            input.id = inputId;
+            input.type = "time";
+            input.value = value;
+            input.dataset.kind = kind;
+            input.addEventListener("input", saveSchedulesFromForm);
+            field.append(label, input);
+            row.append(field);
+          }
+
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.textContent = "刪除此節";
+          remove.setAttribute("aria-label", `刪除第 ${index + 1} 節`);
+          remove.addEventListener("click", () => {
+            schedules = schedules.filter((item) => item.id !== schedule.id);
+            saveAppSettings();
+            renderSchedules();
+          });
+          row.append(remove);
+          scheduleList.append(row);
+        });
+      }
+
+      function getAudioContext() {
+        if (!audioContext) {
+          const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextConstructor) {
+            throw new Error("This browser does not support the Web Audio API.");
+          }
+          audioContext = new AudioContextConstructor();
+        }
+        return audioContext;
+      }
+
+      async function prepareAudio() {
+        const context = getAudioContext();
+        if (context.state === "suspended") await context.resume();
+        return context;
+      }
+
+      function reportAudioError(error, noticeElement) {
+        console.error("Unable to play audio.", error);
+        noticeElement.textContent = "無法播放提示音，請確認瀏覽器支援 Web Audio API 並允許播放聲音。";
+      }
+
+      function playStrike(context, startAt, frequencies, duration, volume) {
+        for (const [index, frequency] of frequencies.entries()) {
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          const partialVolume = volume / (index + 1);
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(frequency, startAt);
+          gain.gain.setValueAtTime(0.001, startAt);
+          gain.gain.linearRampToValueAtTime(partialVolume, startAt + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+          oscillator.connect(gain);
+          gain.connect(context.destination);
+          oscillator.start(startAt);
+          oscillator.stop(startAt + duration + 0.03);
+        }
+      }
+
+      async function playSchoolBell(kind) {
+        const context = await prepareAudio();
+        const now = context.currentTime + 0.04;
+        const isClassStart = kind === "start";
+        const pattern = isClassStart ? [0, 0.52, 1.04] : [0, 0.78];
+        const frequencies = isClassStart ? [880, 1320, 1760] : [659, 988, 1318];
+        pattern.forEach((offset) => playStrike(context, now + offset, frequencies, 1.05, 0.22));
+      }
+
+      async function playTimerChime() {
+        const context = await prepareAudio();
+        const now = context.currentTime + 0.04;
+        [880, 1175, 1568].forEach((frequency, index) => {
+          const startAt = now + index * 0.18;
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(frequency, startAt);
+          gain.gain.setValueAtTime(0.001, startAt);
+          gain.gain.linearRampToValueAtTime(0.18, startAt + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.65);
+          oscillator.connect(gain);
+          gain.connect(context.destination);
+          oscillator.start(startAt);
+          oscillator.stop(startAt + 0.68);
+        });
+      }
+
+      function requestBell(kind) {
+        playSchoolBell(kind)
+          .then(() => { bellNotice.textContent = ""; })
+          .catch((error) => reportAudioError(error, bellNotice));
+      }
+
+      function getMinuteKey(date) {
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}`;
+      }
+
+      function checkAutomaticBell(now) {
+        const minuteKey = getMinuteKey(now);
+        if (minuteKey === lastCheckedMinute) return;
+        lastCheckedMinute = minuteKey;
+        if (!autoBellInput.checked) return;
+
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        const bellKinds = new Set();
+        schedules.forEach((schedule) => {
+          if (schedule.start === currentTime) bellKinds.add("start");
+          if (schedule.end === currentTime) bellKinds.add("end");
+        });
+        bellKinds.forEach(requestBell);
+      }
+
+      function getDurationMilliseconds() {
+        return (timerPhaseKey === "focus" ? Number(focusInput.value) : Number(breakInput.value)) * 60 * 1000;
+      }
+
+      function formatDuration(milliseconds) {
+        const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      }
+
+      function renderTimer() {
+        timerDisplay.textContent = formatDuration(remainingMilliseconds);
+        timerPhase.textContent = timerPhaseKey === "focus" ? "專注時間" : "休息時間";
+        timerRound.textContent = `第 ${currentRound} 輪`;
+        document.getElementById("timer-start").disabled = timerRunning;
+        document.getElementById("timer-pause").disabled = !timerRunning;
+      }
+
+      function switchTimerPhase(autoStart) {
+        if (timerPhaseKey === "break") currentRound += 1;
+        timerPhaseKey = timerPhaseKey === "focus" ? "break" : "focus";
+        remainingMilliseconds = getDurationMilliseconds();
+        timerRunning = autoStart;
+        timerDeadline = autoStart ? Date.now() + remainingMilliseconds : null;
+        renderTimer();
+      }
+
+      function tickTimer() {
+        if (!timerRunning) return;
+        remainingMilliseconds = Math.max(0, timerDeadline - Date.now());
+        if (remainingMilliseconds === 0) {
+          playTimerChime().catch((error) => reportAudioError(error, timerNotice));
+          switchTimerPhase(true);
+        } else {
+          renderTimer();
+        }
+      }
+
+      async function startTimer() {
+        try {
+          await prepareAudio();
+          timerNotice.textContent = "";
+        } catch (error) {
+          reportAudioError(error, timerNotice);
+        }
+        if (timerRunning) return;
+        timerDeadline = Date.now() + remainingMilliseconds;
+        timerRunning = true;
+        renderTimer();
+      }
+
+      function pauseTimer() {
+        if (!timerRunning) return;
+        remainingMilliseconds = Math.max(0, timerDeadline - Date.now());
+        timerRunning = false;
+        timerDeadline = null;
+        renderTimer();
+      }
+
+      function resetTimer() {
+        timerRunning = false;
+        timerDeadline = null;
+        timerPhaseKey = "focus";
+        currentRound = 1;
+        remainingMilliseconds = Number(focusInput.value) * 60 * 1000;
+        timerNotice.textContent = "";
+        renderTimer();
+      }
+
+      function skipTimerPhase() {
+        switchTimerPhase(timerRunning);
+      }
+
+      function updateTimerSettings() {
+        const focusMinutes = Number(focusInput.value);
+        const breakMinutes = Number(breakInput.value);
+        if (!Number.isInteger(focusMinutes) || focusMinutes < 1 || focusMinutes > 180) {
+          focusInput.value = "25";
+        }
+        if (!Number.isInteger(breakMinutes) || breakMinutes < 1 || breakMinutes > 60) {
+          breakInput.value = "5";
+        }
+
+        if (!timerRunning) remainingMilliseconds = getDurationMilliseconds();
+        else timerDeadline = Date.now() + remainingMilliseconds;
+        saveAppSettings();
+        renderTimer();
+      }
+
+      document.getElementById("start-bell-button").addEventListener("click", () => requestBell("start"));
+      document.getElementById("end-bell-button").addEventListener("click", () => requestBell("end"));
+      document.getElementById("add-schedule").addEventListener("click", () => {
+        schedules.push({ id: createScheduleId(), start: "", end: "" });
+        saveAppSettings();
+        renderSchedules();
+      });
+      autoBellInput.addEventListener("change", async () => {
+        saveAppSettings();
+        if (autoBellInput.checked) {
+          try {
+            await prepareAudio();
+            bellNotice.textContent = "";
+          } catch (error) {
+            reportAudioError(error, bellNotice);
+          }
+        }
+      });
+
+      document.getElementById("timer-start").addEventListener("click", startTimer);
+      document.getElementById("timer-pause").addEventListener("click", pauseTimer);
+      document.getElementById("timer-reset").addEventListener("click", resetTimer);
+      document.getElementById("timer-skip").addEventListener("click", skipTimerPhase);
+      focusInput.addEventListener("change", updateTimerSettings);
+      breakInput.addEventListener("change", updateTimerSettings);
+
+      readAppSettings();
+      renderSchedules();
+      remainingMilliseconds = Number(focusInput.value) * 60 * 1000;
+      renderTimer();
+      window.setInterval(() => checkAutomaticBell(new Date()), 500);
+      window.setInterval(tickTimer, 250);
+    })();
+  </script>
+</body>
+</html>
