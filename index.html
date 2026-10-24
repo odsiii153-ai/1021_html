@@ -192,6 +192,12 @@
       background: rgba(11, 18, 34, 0.72);
     }
 
+    .schedule-name {
+      grid-column: 1 / -1;
+      color: #8ee6c1;
+      font-weight: 700;
+    }
+
     .schedule-row button,
     .add-schedule,
     .timer-controls button {
@@ -225,6 +231,35 @@
       flex-wrap: wrap;
       gap: 14px;
       margin-top: 14px;
+    }
+
+    .csv-import {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 10px 16px;
+      overflow: hidden;
+      border: 1px solid #6289df;
+      border-radius: 9px;
+      background: #202d47;
+      color: #fff;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .csv-import input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+
+    .csv-import:focus-within {
+      outline: 3px solid #90b4ff;
+      outline-offset: 2px;
     }
 
     .schedule-hint {
@@ -269,6 +304,13 @@
       margin: 16px 0 28px;
       color: #8ee6c1;
       font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+    }
+
+    .focus-total {
+      margin: -12px 0 26px;
+      color: #b9c7e8;
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      font-variant-numeric: tabular-nums;
     }
 
     .timer-controls button {
@@ -333,6 +375,64 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 14px;
       width: 100%;
+    }
+
+    .exam-notice {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      overflow: hidden;
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 189, 120, 0.35);
+      border-radius: 12px;
+      background: rgba(73, 48, 25, 0.5);
+    }
+
+    .exam-notice-label {
+      flex: 0 0 auto;
+      color: #ffd18f;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .notice-viewport {
+      min-width: 0;
+      overflow: hidden;
+      color: #fff0d2;
+    }
+
+    .notice-track {
+      display: flex;
+      width: max-content;
+      min-width: 100%;
+      animation: notice-scroll 26s linear infinite;
+    }
+
+    .notice-track span {
+      flex: 0 0 auto;
+      padding-right: 5rem;
+      white-space: nowrap;
+    }
+
+    @keyframes notice-scroll {
+      from { transform: translateX(100%); }
+      to { transform: translateX(-100%); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .notice-track {
+        width: auto;
+        animation: none;
+      }
+
+      .notice-track span {
+        padding-right: 0;
+        white-space: normal;
+      }
+
+      .notice-track span[aria-hidden="true"] {
+        display: none;
+      }
     }
 
     .info-card {
@@ -597,6 +697,16 @@
       </div>
     </section>
 
+    <section class="exam-notice" aria-label="考試注意事項">
+      <strong class="exam-notice-label">考試注意事項</strong>
+      <div class="notice-viewport">
+        <div class="notice-track" id="notice-track" role="status" aria-live="polite">
+          <span id="notice-message">考試期間請保持安靜，手機請關機或調整為靜音。</span>
+          <span id="notice-message-copy" aria-hidden="true">考試期間請保持安靜，手機請關機或調整為靜音。</span>
+        </div>
+      </div>
+    </section>
+
     <section class="editor" aria-label="考試設定">
       <div class="editor-heading">
         <h2>考試資訊設定</h2>
@@ -618,6 +728,10 @@
         <div class="field">
           <label for="teacher">監考老師</label>
           <input id="teacher" type="text" placeholder="輸入老師姓名" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="exam-notice-input">考試注意事項</label>
+          <input id="exam-notice-input" type="text" placeholder="輸入要提醒考生的事項" autocomplete="off" value="考試期間請保持安靜，手機請關機或調整為靜音。">
         </div>
         <div class="attendee-fields">
           <div class="field">
@@ -653,8 +767,12 @@
           <div class="schedule-list" id="schedule-list"></div>
           <div class="schedule-actions">
             <button class="add-schedule" id="add-schedule" type="button">＋ 新增一節</button>
+            <label class="csv-import" for="schedule-csv">匯入 CSV
+              <input id="schedule-csv" type="file" accept=".csv,text/csv">
+            </label>
             <p class="schedule-hint">請確認瀏覽器保持開啟，且裝置音量已開啟。</p>
           </div>
+          <p class="schedule-hint">CSV 每列格式：節次,上課時間,下課時間（例如：第一節,08:10,09:00）</p>
           <p class="tool-notice" id="bell-notice" role="status"></p>
         </div>
       </section>
@@ -666,6 +784,7 @@
         <p class="timer-phase" id="timer-phase">專注時間</p>
         <p class="timer-display" id="timer-display" role="timer" aria-live="off">25:00</p>
         <p class="timer-round" id="timer-round">第 1 輪</p>
+        <p class="focus-total" id="focus-total" aria-live="off">累計專注時間：00:00:00</p>
         <div class="timer-controls">
           <button id="timer-start" type="button">開始</button>
           <button class="secondary" id="timer-pause" type="button">暫停</button>
@@ -697,12 +816,19 @@
       startTime: document.getElementById("start-time"),
       endTime: document.getElementById("end-time"),
       teacher: document.getElementById("teacher"),
+      notice: document.getElementById("exam-notice-input"),
       expected: document.getElementById("expected"),
       actual: document.getElementById("actual")
     };
     const notice = document.getElementById("storage-notice");
     const countdownCard = document.getElementById("countdown-card");
     const fullscreenButton = document.getElementById("fullscreen-button");
+
+    function updateExamNotice() {
+      const message = fields.notice.value.trim() || "（尚未設定注意事項）";
+      document.getElementById("notice-message").textContent = message;
+      document.getElementById("notice-message-copy").textContent = message;
+    }
 
     function showStorageError(action) {
       notice.textContent = `無法${action}到此瀏覽器的本機儲存空間；目前畫面仍可使用。`;
@@ -718,7 +844,7 @@
           throw new Error("Stored exam settings must be an object.");
         }
 
-        for (const key of ["subject", "startTime", "endTime", "teacher"]) {
+        for (const key of ["subject", "startTime", "endTime", "teacher", "notice"]) {
           if (typeof settings[key] === "string") fields[key].value = settings[key];
         }
         for (const key of ["expected", "actual"]) {
@@ -737,6 +863,7 @@
         startTime: fields.startTime.value,
         endTime: fields.endTime.value,
         teacher: fields.teacher.value,
+        notice: fields.notice.value,
         expected: fields.expected.value,
         actual: fields.actual.value
       };
@@ -853,12 +980,14 @@
 
     readSettings();
     updateExamInfo();
+    updateExamNotice();
     updateClock();
 
     for (const input of Object.values(fields)) {
       input.addEventListener("input", () => {
         saveSettings();
         updateExamInfo();
+        updateExamNotice();
         updateClock();
       });
     }
@@ -875,6 +1004,7 @@
       const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
       const panels = tabs.map((tab) => document.getElementById(tab.getAttribute("aria-controls")));
       const scheduleList = document.getElementById("schedule-list");
+      const scheduleCsvInput = document.getElementById("schedule-csv");
       const autoBellInput = document.getElementById("auto-bell");
       const bellNotice = document.getElementById("bell-notice");
       const timerNotice = document.getElementById("timer-notice");
@@ -883,6 +1013,7 @@
       const timerDisplay = document.getElementById("timer-display");
       const timerPhase = document.getElementById("timer-phase");
       const timerRound = document.getElementById("timer-round");
+      const focusTotalDisplay = document.getElementById("focus-total");
       let audioContext = null;
       let schedules = [];
       let timerPhaseKey = "focus";
@@ -890,6 +1021,9 @@
       let remainingMilliseconds = 25 * 60 * 1000;
       let timerDeadline = null;
       let timerRunning = false;
+      let accumulatedFocusMilliseconds = 0;
+      let focusSegmentStartedAt = null;
+      let lastFocusSaveAt = 0;
       let lastCheckedMinute = getMinuteKey(new Date());
 
       function selectTab(index, moveFocus) {
@@ -924,6 +1058,65 @@
         return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
       }
 
+      function parseScheduleCsv(text) {
+        const rows = [];
+        let row = [];
+        let field = "";
+        let inQuotes = false;
+        const source = text.replace(/^\uFEFF/, "");
+
+        for (let index = 0; index < source.length; index += 1) {
+          const character = source[index];
+          if (inQuotes) {
+            if (character === '"' && source[index + 1] === '"') {
+              field += '"';
+              index += 1;
+            } else if (character === '"') {
+              inQuotes = false;
+            } else {
+              field += character;
+            }
+          } else if (character === '"' && field.trim() === "") {
+            field = "";
+            inQuotes = true;
+          } else if (character === ",") {
+            row.push(field.trim());
+            field = "";
+          } else if (character === "\n" || character === "\r") {
+            row.push(field.trim());
+            if (row.some((value) => value !== "")) rows.push(row);
+            row = [];
+            field = "";
+            if (character === "\r" && source[index + 1] === "\n") index += 1;
+          } else {
+            field += character;
+          }
+        }
+
+        if (inQuotes) throw new Error("CSV 有未配對的雙引號，請檢查檔案格式。");
+        row.push(field.trim());
+        if (row.some((value) => value !== "")) rows.push(row);
+        if (rows.length === 0) throw new Error("CSV 檔案沒有可匯入的課表資料。");
+
+        const firstCell = rows[0][0].replace(/^\uFEFF/, "");
+        const firstRowIsHeader = ["節次", "節", "課次"].includes(firstCell);
+        const dataRows = firstRowIsHeader ? rows.slice(1) : rows;
+        if (dataRows.length === 0) throw new Error("CSV 只有標題列，沒有課表資料。");
+
+        return dataRows.map((values, index) => {
+          const rowNumber = index + (firstRowIsHeader ? 2 : 1);
+          if (values.length !== 3) {
+            throw new Error(`CSV 第 ${rowNumber} 列必須包含節次、上課時間、下課時間三欄。`);
+          }
+          const [name, start, end] = values;
+          if (!name) throw new Error(`CSV 第 ${rowNumber} 列缺少節次名稱。`);
+          if (!validTime(start) || !validTime(end)) {
+            throw new Error(`CSV 第 ${rowNumber} 列的時間格式錯誤，請使用 24 小時制（例如 08:10）。`);
+          }
+          return { id: createScheduleId(), name, start, end };
+        });
+      }
+
       function readAppSettings() {
         try {
           const raw = localStorage.getItem(APP_KEY);
@@ -938,6 +1131,7 @@
               .filter((item) => item && typeof item === "object")
               .map((item) => ({
                 id: typeof item.id === "string" ? item.id : createScheduleId(),
+                name: typeof item.name === "string" ? item.name : "",
                 start: validTime(item.start) ? item.start : "",
                 end: validTime(item.end) ? item.end : ""
               }));
@@ -951,6 +1145,9 @@
           if (Number.isInteger(settings.breakMinutes) && settings.breakMinutes >= 1 && settings.breakMinutes <= 60) {
             breakInput.value = String(settings.breakMinutes);
           }
+          if (Number.isFinite(settings.focusMilliseconds) && settings.focusMilliseconds >= 0) {
+            accumulatedFocusMilliseconds = settings.focusMilliseconds;
+          }
         } catch (error) {
           console.error("Unable to load clock tool settings.", error);
           bellNotice.textContent = "無法讀取已儲存的課表或工具設定。";
@@ -959,25 +1156,31 @@
 
       function saveAppSettings() {
         const settings = {
-          schedules: schedules.map(({ id, start, end }) => ({ id, start, end })),
+          schedules: schedules.map(({ id, name, start, end }) => ({ id, name, start, end })),
           autoBell: autoBellInput.checked,
           focusMinutes: Number(focusInput.value),
-          breakMinutes: Number(breakInput.value)
+          breakMinutes: Number(breakInput.value),
+          focusMilliseconds: getTotalFocusMilliseconds()
         };
         try {
           localStorage.setItem(APP_KEY, JSON.stringify(settings));
         } catch (error) {
           console.error("Unable to save clock tool settings.", error);
           bellNotice.textContent = "無法將課表或工具設定儲存到本機。";
+          timerNotice.textContent = "無法儲存番茄鐘的累計專注時間。";
         }
       }
 
       function saveSchedulesFromForm() {
-        schedules = Array.from(scheduleList.querySelectorAll(".schedule-row")).map((row) => ({
-          id: row.dataset.scheduleId,
-          start: row.querySelector('[data-kind="start"]').value,
-          end: row.querySelector('[data-kind="end"]').value
-        }));
+        schedules = Array.from(scheduleList.querySelectorAll(".schedule-row")).map((row) => {
+          const previous = schedules.find((schedule) => schedule.id === row.dataset.scheduleId);
+          return {
+            id: row.dataset.scheduleId,
+            name: previous ? previous.name : "",
+            start: row.querySelector('[data-kind="start"]').value,
+            end: row.querySelector('[data-kind="end"]').value
+          };
+        });
         saveAppSettings();
       }
 
@@ -995,9 +1198,13 @@
           const row = document.createElement("div");
           row.className = "schedule-row";
           row.dataset.scheduleId = schedule.id;
+          const name = document.createElement("span");
+          name.className = "schedule-name";
+          name.textContent = schedule.name || `第 ${index + 1} 節`;
+          row.append(name);
           for (const [kind, labelText, value] of [
-            ["start", `第 ${index + 1} 節上課時間`, schedule.start],
-            ["end", `第 ${index + 1} 節下課時間`, schedule.end]
+            ["start", `${name.textContent}上課時間`, schedule.start],
+            ["end", `${name.textContent}下課時間`, schedule.end]
           ]) {
             const field = document.createElement("div");
             field.className = "field";
@@ -1027,6 +1234,23 @@
           row.append(remove);
           scheduleList.append(row);
         });
+      }
+
+      async function importScheduleCsv(file) {
+        try {
+          const importedSchedules = parseScheduleCsv(await file.text());
+          schedules = importedSchedules;
+          saveAppSettings();
+          renderSchedules();
+          bellNotice.textContent = `已匯入 ${importedSchedules.length} 節課表。`;
+        } catch (error) {
+          console.error("Unable to import schedule CSV.", error);
+          bellNotice.textContent = error instanceof Error
+            ? error.message
+            : "無法讀取 CSV 檔案，請確認檔案格式後再試一次。";
+        } finally {
+          scheduleCsvInput.value = "";
+        }
       }
 
       function getAudioContext() {
@@ -1132,21 +1356,44 @@
         return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
       }
 
+      function getTotalFocusMilliseconds(now = Date.now()) {
+        const currentSegment = timerPhaseKey === "focus" && timerRunning && focusSegmentStartedAt !== null
+          ? Math.max(0, now - focusSegmentStartedAt)
+          : 0;
+        return accumulatedFocusMilliseconds + currentSegment;
+      }
+
+      function formatFocusTotal(milliseconds) {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      }
+
       function renderTimer() {
         timerDisplay.textContent = formatDuration(remainingMilliseconds);
         timerPhase.textContent = timerPhaseKey === "focus" ? "專注時間" : "休息時間";
         timerRound.textContent = `第 ${currentRound} 輪`;
+        focusTotalDisplay.textContent = `累計專注時間：${formatFocusTotal(getTotalFocusMilliseconds())}`;
         document.getElementById("timer-start").disabled = timerRunning;
         document.getElementById("timer-pause").disabled = !timerRunning;
       }
 
       function switchTimerPhase(autoStart) {
+        const now = Date.now();
+        if (timerPhaseKey === "focus" && focusSegmentStartedAt !== null) {
+          accumulatedFocusMilliseconds += Math.max(0, now - focusSegmentStartedAt);
+          focusSegmentStartedAt = null;
+        }
         if (timerPhaseKey === "break") currentRound += 1;
         timerPhaseKey = timerPhaseKey === "focus" ? "break" : "focus";
         remainingMilliseconds = getDurationMilliseconds();
         timerRunning = autoStart;
-        timerDeadline = autoStart ? Date.now() + remainingMilliseconds : null;
+        timerDeadline = autoStart ? now + remainingMilliseconds : null;
+        if (autoStart && timerPhaseKey === "focus") focusSegmentStartedAt = now;
         renderTimer();
+        saveAppSettings();
       }
 
       function tickTimer() {
@@ -1157,6 +1404,10 @@
           switchTimerPhase(true);
         } else {
           renderTimer();
+          if (timerPhaseKey === "focus" && Date.now() - lastFocusSaveAt >= 5000) {
+            lastFocusSaveAt = Date.now();
+            saveAppSettings();
+          }
         }
       }
 
@@ -1168,27 +1419,38 @@
           reportAudioError(error, timerNotice);
         }
         if (timerRunning) return;
-        timerDeadline = Date.now() + remainingMilliseconds;
+        const now = Date.now();
+        timerDeadline = now + remainingMilliseconds;
         timerRunning = true;
+        if (timerPhaseKey === "focus") focusSegmentStartedAt = now;
         renderTimer();
       }
 
       function pauseTimer() {
         if (!timerRunning) return;
-        remainingMilliseconds = Math.max(0, timerDeadline - Date.now());
+        const now = Date.now();
+        remainingMilliseconds = Math.max(0, timerDeadline - now);
+        if (timerPhaseKey === "focus" && focusSegmentStartedAt !== null) {
+          accumulatedFocusMilliseconds += Math.max(0, now - focusSegmentStartedAt);
+          focusSegmentStartedAt = null;
+        }
         timerRunning = false;
         timerDeadline = null;
         renderTimer();
+        saveAppSettings();
       }
 
       function resetTimer() {
+        if (timerRunning) pauseTimer();
         timerRunning = false;
         timerDeadline = null;
+        focusSegmentStartedAt = null;
         timerPhaseKey = "focus";
         currentRound = 1;
         remainingMilliseconds = Number(focusInput.value) * 60 * 1000;
         timerNotice.textContent = "";
         renderTimer();
+        saveAppSettings();
       }
 
       function skipTimerPhase() {
@@ -1214,9 +1476,13 @@
       document.getElementById("start-bell-button").addEventListener("click", () => requestBell("start"));
       document.getElementById("end-bell-button").addEventListener("click", () => requestBell("end"));
       document.getElementById("add-schedule").addEventListener("click", () => {
-        schedules.push({ id: createScheduleId(), start: "", end: "" });
+        schedules.push({ id: createScheduleId(), name: "", start: "", end: "" });
         saveAppSettings();
         renderSchedules();
+      });
+      scheduleCsvInput.addEventListener("change", () => {
+        const [file] = scheduleCsvInput.files || [];
+        if (file) importScheduleCsv(file);
       });
       autoBellInput.addEventListener("change", async () => {
         saveAppSettings();
@@ -1243,6 +1509,7 @@
       renderTimer();
       window.setInterval(() => checkAutomaticBell(new Date()), 500);
       window.setInterval(tickTimer, 250);
+      window.addEventListener("pagehide", saveAppSettings);
     })();
   </script>
 </body>
